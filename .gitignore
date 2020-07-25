@@ -1,1 +1,4 @@
 .DS_Store
+mysql/data
+elastic/data
+liferay/data
