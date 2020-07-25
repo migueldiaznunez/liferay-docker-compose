@@ -1,0 +1,66 @@
+version: '3.7'
+services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pwd
+      MYSQL_DATABASE: businessdb
+      MYSQL_USER: businessuser
+      MYSQL_PASSWORD: businesspass
+    ports:
+      - "3306:3306"
+      - "33060:33060"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/conf.d:/etc/mysql/conf.d
+      - ./mysql/initdb.d:/docker-entrypoint-initdb.d
+    container_name: mysql
+    networks: 
+    - liferay-network
+  elasticsearch:
+    image: elasticsearch:7.7.0
+    environment:
+      - discovery.type=single-node
+      - cluster.name=LiferayElasticsearchCluster
+      - xpack.security.enabled=false
+      - network.bind_host=0.0.0.0
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - ./elastic/data:/usr/share/elasticsearch/data
+    container_name: elasticsearch
+    networks: 
+    - liferay-network
+  liferay:
+    image: liferay/portal:7.3.3-ga4
+    depends_on:
+      - mysql
+      - elasticsearch
+    environment:
+      LIFERAY_SETUP_PERIOD_WIZARD_PERIOD_ENABLED: "false"
+      LIFERAY_TERMS_PERIOD_OF_PERIOD_USE_PERIOD_REQUIRED: "false"
+      LIFERAY_USERS_PERIOD_REMINDER_PERIOD_QUERIES_PERIOD_ENABLED: "false"
+      LIFERAY_USERS_PERIOD_REMINDER_PERIOD_QUERIES_PERIOD_CUSTOM_PERIOD_QUESTION_PERIOD_ENABLED: "false"
+      LIFERAY_LOCALES_PERIOD_ENABLED: en_US,es_ES
+    ports:
+      - "8000:8000"
+      - "8009:8009"
+      - "8080:8080"
+      - "11311:11311"
+    volumes:
+      - ./liferay/base/osgi/configs/com.liferay.portal.search.elasticsearch.configuration.ElasticsearchConfiguration.config:/opt/liferay/osgi/configs/com.liferay.portal.search.elasticsearch.configuration.ElasticsearchConfiguration.config
+      - ./liferay/base/portal-ext.properties:/opt/liferay/portal-ext.properties
+      - ./liferay/data/document_library:/opt/liferay/data/document_library
+      - ./liferay/deploy:/opt/liferay/deploy
+    container_name: liferay
+    networks: 
+    - liferay-network
+networks: 
+  liferay-network:
+    name: liferay-network
